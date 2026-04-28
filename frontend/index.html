@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopFácil — Assistente Virtual</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .logo { font-size: 28px; }
+    header h1   { font-size: 22px; font-weight: 700; }
+    header p    { font-size: 13px; opacity: .85; margin-top: 2px; }
+
+    /* ── Main layout ── */
+    main {
+      width: 100%;
+      max-width: 820px;
+      padding: 28px 16px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Chat box ── */
+    #chat-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      min-height: 380px;
+      max-height: 520px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      scroll-behavior: smooth;
+    }
+
+    /* ── Mensagens ── */
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+    }
+    .msg.user  { align-self: flex-end; align-items: flex-end; }
+    .msg.bot   { align-self: flex-start; align-items: flex-start; }
+
+    .msg .bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 14.5px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user .bubble {
+      background: #1a73e8;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.bot .bubble {
+      background: #f1f3f4;
+      color: #202124;
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Tags de meta-informação */
+    .msg .meta {
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      background: #e8f0fe;
+      color: #1a73e8;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag.tipo { background: #e6f4ea; color: #137333; }
+
+    /* Mensagem de boas-vindas */
+    .welcome {
+      text-align: center;
+      color: #5f6368;
+      font-size: 14px;
+      padding: 40px 20px;
+    }
+    .welcome .icon { font-size: 48px; margin-bottom: 10px; }
+    .welcome strong { color: #1a73e8; }
+
+    /* ── Input area ── */
+    #input-area {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    #question-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      transition: border-color .2s;
+    }
+    #question-input:focus { border-color: #1a73e8; }
+
+    /* Sugestões rápidas */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .sug-btn {
+      background: #e8f0fe;
+      color: #1a73e8;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: background .2s;
+      font-family: inherit;
+    }
+    .sug-btn:hover { background: #d2e3fc; }
+
+    /* Botão enviar */
+    #send-btn {
+      align-self: flex-end;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, opacity .2s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #send-btn:hover   { background: #1557b0; }
+    #send-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    #send-btn.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: #9aa0a6;
+      font-size: 12px;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛍️</div>
+  <div>
+    <h1>Assistente ShopFácil</h1>
+    <p>Agente inteligente de atendimento ao cliente</p>
+  </div>
+</header>
+
+<main>
+  <!-- Chat -->
+  <div id="chat-box">
+    <div class="welcome" id="welcome">
+      <div class="icon">🤖</div>
+      <p>Olá! Sou o assistente virtual da <strong>ShopFácil</strong>.<br>
+      Posso ajudar com dúvidas sobre <strong>entregas, pagamentos,
+      trocas, devoluções e cancelamentos</strong>.</p>
+    </div>
+  </div>
+
+  <!-- Área de input -->
+  <div id="input-area">
+    <textarea
+      id="question-input"
+      rows="3"
+      placeholder="Digite sua dúvida aqui... (ex: Como faço para cancelar um pedido?)"
+    ></textarea>
+
+    <!-- Sugestões rápidas -->
+    <div class="suggestions">
+      <button class="sug-btn" onclick="fillQuestion('Qual o prazo de entrega para meu pedido?')">📦 Prazo de entrega</button>
+      <button class="sug-btn" onclick="fillQuestion('Como faço para trocar um produto com defeito?')">🔄 Troca por defeito</button>
+      <button class="sug-btn" onclick="fillQuestion('Quais formas de pagamento são aceitas?')">💳 Formas de pagamento</button>
+      <button class="sug-btn" onclick="fillQuestion('Como cancelo meu pedido?')">❌ Cancelar pedido</button>
+      <button class="sug-btn" onclick="fillQuestion('Vocês aceitam PIX? Tem desconto?')">🏷️ Desconto PIX</button>
+    </div>
+
+    <button id="send-btn" onclick="sendQuestion()">
+      <span class="spinner"></span>
+      <span id="btn-label">Enviar ✈️</span>
+    </button>
+  </div>
+</main>
+
+<footer>
+  ShopFácil © 2025 — Assistente com LangGraph + RAG + Groq LLaMA 3
+</footer>
+
+<script>
+  const chatBox = document.getElementById('chat-box');
+  const input   = document.getElementById('question-input');
+  const sendBtn = document.getElementById('send-btn');
+  const btnLabel = document.getElementById('btn-label');
+
+  // Mapa de intenção → label amigável
+  const intentLabels = {
+    troca_devolucao: '🔄 Troca/Devolução',
+    pagamento:       '💳 Pagamento',
+    entrega:         '📦 Entrega',
+    cancelamento:    '❌ Cancelamento',
+    produto:         '📱 Produto',
+    outro:           '💬 Outro',
+  };
+
+  const typeLabels = {
+    checklist:       '📋 Passo a passo',
+    politica:        '📜 Política',
+    resumo:          '📝 Resumo',
+    resposta_direta: '💬 Resposta direta',
+    sem_informacao:  '❓ Sem informação',
+  };
+
+  function fillQuestion(text) {
+    input.value = text;
+    input.focus();
+  }
+
+  function appendMsg(role, text, meta = null) {
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    div.appendChild(bubble);
+
+    if (meta) {
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'meta';
+      if (meta.intencao) {
+        const t = document.createElement('span');
+        t.className = 'tag';
+        t.textContent = intentLabels[meta.intencao] || meta.intencao;
+        metaDiv.appendChild(t);
+      }
+      if (meta.tipo_resposta) {
+        const t = document.createElement('span');
+        t.className = 'tag tipo';
+        t.textContent = typeLabels[meta.tipo_resposta] || meta.tipo_resposta;
+        metaDiv.appendChild(t);
+      }
+      div.appendChild(metaDiv);
+    }
+
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function setLoading(loading) {
+    sendBtn.disabled = loading;
+    sendBtn.classList.toggle('loading', loading);
+    btnLabel.textContent = loading ? 'Aguarde...' : 'Enviar ✈️';
+  }
+
+  async function sendQuestion() {
+    const question = input.value.trim();
+    if (!question) return;
+
+    appendMsg('user', question);
+    input.value = '';
+    setLoading(true);
+
+    try {
+      const res = await fetch('/perguntar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pergunta: question }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        appendMsg('bot', `⚠️ Erro: ${err.detail || 'Falha ao processar a pergunta.'}`);
+        return;
+      }
+
+      const data = await res.json();
+      appendMsg('bot', data.resposta, {
+        intencao: data.intencao,
+        tipo_resposta: data.tipo_resposta,
+      });
+
+    } catch (e) {
+      appendMsg('bot', '⚠️ Não foi possível conectar ao servidor. Verifique se o backend está rodando.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Enviar com Enter (Shift+Enter para nova linha)
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendQuestion();
+    }
+  });
+</script>
+
+</body>
+</html>
